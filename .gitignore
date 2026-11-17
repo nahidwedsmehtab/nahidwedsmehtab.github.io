@@ -1,0 +1,12 @@
+# Source media (not used by the website)
+*.mp4
+*.pdf
+
+# System files
+.DS_Store
+
+# Original downloaded sound (processed copy lives in assets/audio)
+/keannix-*.mp3
+
+# Logo / DP files (not part of the website)
+/WhatsApp DP/
