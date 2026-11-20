@@ -566,12 +566,29 @@
   // called from the door tap, so phones allow the music to start
   function startMusic() { if (audio) playMusic(true); }
   // after an automatic gate opening: the first touch anywhere starts the song (if it isn't playing yet)
+  // Keeps trying on every touch until the song really plays: a swipe does not count as permission
+  // for sound on phones, so the first touch alone is not enough.
   function armMusicOnTouch() {
     if (!audio) return;
     const evs = ['pointerup', 'touchend', 'click', 'keydown'];
+    const stop = () => evs.forEach((ev) => document.removeEventListener(ev, go, true));
+    let faded = false;
     const go = () => {
-      evs.forEach((ev) => document.removeEventListener(ev, go, true));
-      if (audio.paused && !document.hidden) playMusic(true);
+      if (!audio.paused) { stop(); return; }
+      if (document.hidden) return;
+      if (!faded) audio.volume = 0.05;
+      audio.play().then(() => { // must be called right inside the touch, so no waiting before it
+        stop();
+        if (faded) return;
+        faded = true;
+        const start = performance.now();
+        const step = (now) => {
+          const k = Math.min(1, (now - start) / 2500);
+          audio.volume = 0.05 + 0.6 * k;
+          if (k < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      }).catch(() => {});
     };
     evs.forEach((ev) => document.addEventListener(ev, go, true));
   }
