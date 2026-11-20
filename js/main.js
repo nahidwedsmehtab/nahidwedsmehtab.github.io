@@ -70,17 +70,14 @@
   const openBtn = $('#openBtn');
   let opened = false;
 
-  function openGate(auto) {
+  function openGate() {
     if (opened) return;
     opened = true;
-    clearTimeout(gateTimer);
     gate.classList.add('is-opening');
     burst(innerWidth / 2, innerHeight / 2, 46);
     playGateSound();
     if (navigator.vibrate) { try { navigator.vibrate([12, 60, 18]); } catch (e) { /* ignore */ } } // gentle tap on Android
     startMusic();
-    // opened by the timer (no tap): phones block sound until a touch, so start the song on the first touch
-    if (auto === true) armMusicOnTouch();
     setTimeout(() => {
       document.body.classList.remove('is-locked');
       window.scrollTo(0, 0);
@@ -90,16 +87,6 @@
     }, 900);
     setTimeout(() => gate.remove(), 2400);
   }
-
-  // open the doors by themselves if nobody taps (counts only while the page is on screen)
-  const GATE_AUTO_OPEN = 6000;
-  let gateTimer = 0;
-  function armGateTimer() {
-    clearTimeout(gateTimer);
-    if (!opened && !document.hidden) gateTimer = setTimeout(() => openGate(true), GATE_AUTO_OPEN);
-  }
-  document.addEventListener('visibilitychange', () => { if (document.hidden) clearTimeout(gateTimer); else armGateTimer(); });
-  armGateTimer();
   /* ---------- Gate sound: wind chimes (assets/audio/gate-chimes.mp3) ---------- */
   const gateAudio = CONFIG.gateSound && CONFIG.gateSoundFile ? new Audio(CONFIG.gateSoundFile) : null;
   if (gateAudio) gateAudio.preload = 'auto';
@@ -565,33 +552,6 @@
   }
   // called from the door tap, so phones allow the music to start
   function startMusic() { if (audio) playMusic(true); }
-  // after an automatic gate opening: the first touch anywhere starts the song (if it isn't playing yet)
-  // Keeps trying on every touch until the song really plays: a swipe does not count as permission
-  // for sound on phones, so the first touch alone is not enough.
-  function armMusicOnTouch() {
-    if (!audio) return;
-    const evs = ['pointerup', 'touchend', 'click', 'keydown'];
-    const stop = () => evs.forEach((ev) => document.removeEventListener(ev, go, true));
-    let faded = false;
-    const go = () => {
-      if (!audio.paused) { stop(); return; }
-      if (document.hidden) return;
-      if (!faded) audio.volume = 0.05;
-      audio.play().then(() => { // must be called right inside the touch, so no waiting before it
-        stop();
-        if (faded) return;
-        faded = true;
-        const start = performance.now();
-        const step = (now) => {
-          const k = Math.min(1, (now - start) / 2500);
-          audio.volume = 0.05 + 0.6 * k;
-          if (k < 1) requestAnimationFrame(step);
-        };
-        requestAnimationFrame(step);
-      }).catch(() => {});
-    };
-    evs.forEach((ev) => document.addEventListener(ev, go, true));
-  }
 
   /* =========================================================
      AUTO-SCROLL TOUR — glides through the invite for guests who don't scroll.
