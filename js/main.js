@@ -70,22 +70,36 @@
   const openBtn = $('#openBtn');
   let opened = false;
 
-  function openGate() {
+  function openGate(auto) {
     if (opened) return;
     opened = true;
+    clearTimeout(gateTimer);
     gate.classList.add('is-opening');
     burst(innerWidth / 2, innerHeight / 2, 46);
     playGateSound();
     if (navigator.vibrate) { try { navigator.vibrate([12, 60, 18]); } catch (e) { /* ignore */ } } // gentle tap on Android
     startMusic();
+    // opened by the timer (no tap): phones block sound until a touch, so start the song on the first touch
+    if (auto === true) armMusicOnTouch();
     setTimeout(() => {
       document.body.classList.remove('is-locked');
       window.scrollTo(0, 0);
       document.body.classList.add('hero-in');
       startPetals();
+      startTour();
     }, 900);
     setTimeout(() => gate.remove(), 2400);
   }
+
+  // open the doors by themselves if nobody taps (counts only while the page is on screen)
+  const GATE_AUTO_OPEN = 6000;
+  let gateTimer = 0;
+  function armGateTimer() {
+    clearTimeout(gateTimer);
+    if (!opened && !document.hidden) gateTimer = setTimeout(() => openGate(true), GATE_AUTO_OPEN);
+  }
+  document.addEventListener('visibilitychange', () => { if (document.hidden) clearTimeout(gateTimer); else armGateTimer(); });
+  armGateTimer();
   /* ---------- Gate sound: wind chimes (assets/audio/gate-chimes.mp3) ---------- */
   const gateAudio = CONFIG.gateSound && CONFIG.gateSoundFile ? new Audio(CONFIG.gateSoundFile) : null;
   if (gateAudio) gateAudio.preload = 'auto';
@@ -551,6 +565,136 @@
   }
   // called from the door tap, so phones allow the music to start
   function startMusic() { if (audio) playMusic(true); }
+  // after an automatic gate opening: the first touch anywhere starts the song (if it isn't playing yet)
+  function armMusicOnTouch() {
+    if (!audio) return;
+    const evs = ['pointerup', 'touchend', 'click', 'keydown'];
+    const go = () => {
+      evs.forEach((ev) => document.removeEventListener(ev, go, true));
+      if (audio.paused && !document.hidden) playMusic(true);
+    };
+    evs.forEach((ev) => document.addEventListener(ev, go, true));
+  }
+
+  /* =========================================================
+     AUTO-SCROLL TOUR — glides through the invite for guests who don't scroll.
+     Stops for good once the guest scrolls themselves; a plain tap pauses it
+     and it carries on after RESUME_AFTER of no touching.
+     ========================================================= */
+  const HERO_HOLD = 6000;      // names & date
+  const RESUME_AFTER = 12000;  // after a tap
+  const TOUR = [               // [section id, seconds at each stop] (two numbers = two stops)
+    ['verse', [8]],
+    ['invite', [10, 9]],       // bride's side, then groom's side
+    ['countdown', [6]],
+    ['haldi', [8, 6]],         // only on the Haldi link
+    ['nikah', [8, 8]],
+    ['venue', [5, 5]],
+    ['mehfil', [12]],
+    ['closing', [0]],          // the end: stop here
+  ];
+  const tourStops = [];
+  TOUR.forEach(([id, secs]) => secs.forEach((s, part) => tourStops.push({ id, part, parts: secs.length, ms: s * 1000 })));
+  tourStops[tourStops.length - 1].last = true;
+
+  let tourState = 'idle'; // idle | hold | glide | dwell | paused | hidden | done | off
+  let tourIdx = 0, tourTimer = 0, tourRaf = 0, resumeTimer = 0;
+  const root = document.documentElement;
+
+  function viewH() {
+    const d = $('#dock');
+    const docked = d && getComputedStyle(d).display !== 'none';
+    return innerHeight - (docked ? d.offsetHeight + 24 : 0);
+  }
+  function stopY(s) {
+    const el = document.getElementById(s.id);
+    if (!el || el.hidden) return null;
+    const max = root.scrollHeight - innerHeight;
+    const vh = viewH();
+    const r = el.getBoundingClientRect();
+    const top = r.top + scrollY;
+    let y;
+    if (s.last) y = max;
+    else if (s.parts === 2 && r.height > vh + 40) y = s.part === 0 ? top : top + r.height - vh;
+    else { // fits on one screen: centre its content
+      const c = el.querySelector(':scope > .wrap') || el;
+      const cr = c.getBoundingClientRect();
+      y = cr.top + scrollY - (vh - cr.height) / 2;
+    }
+    return Math.max(0, Math.min(max, Math.round(y)));
+  }
+  function stopTimers() {
+    clearTimeout(tourTimer); clearTimeout(resumeTimer); cancelAnimationFrame(tourRaf);
+    root.style.scrollBehavior = '';
+  }
+  function glide(y, done) {
+    const from = scrollY, dist = y - from;
+    if (Math.abs(dist) < 2) { done(); return; }
+    const dur = reduceMotion ? 0 : Math.min(2600, Math.max(1400, Math.abs(dist) * 2.4));
+    root.style.scrollBehavior = 'auto';
+    const t0 = performance.now();
+    const step = (now) => {
+      const k = dur ? Math.min(1, (now - t0) / dur) : 1;
+      const e = k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; // ease in-out
+      window.scrollTo(0, from + dist * e);
+      if (k < 1) tourRaf = requestAnimationFrame(step);
+      else { root.style.scrollBehavior = ''; done(); }
+    };
+    tourRaf = requestAnimationFrame(step);
+  }
+  function tourNext() {
+    if (tourState === 'off' || tourState === 'done') return;
+    if (document.hidden) { tourState = 'hidden'; return; }
+    let s = tourStops[tourIdx], y = null;
+    while (s && (y = stopY(s)) === null) s = tourStops[++tourIdx]; // skip sections not on this link
+    if (!s) { tourState = 'done'; return; }
+    tourState = 'glide';
+    glide(y, () => {
+      if (s.last) { tourState = 'done'; return; }
+      tourState = 'dwell';
+      tourTimer = setTimeout(() => { tourIdx++; tourNext(); }, s.ms);
+    });
+  }
+  function startTour() {
+    if (tourState !== 'idle') return;
+    tourState = 'hold';
+    tourTimer = setTimeout(tourNext, HERO_HOLD);
+  }
+  function tourResume() {
+    if (tourState !== 'paused' && tourState !== 'hidden') return;
+    if (document.hidden) { tourState = 'hidden'; return; }
+    // carry on with the first stop below where the guest is now
+    tourIdx = tourStops.findIndex((s) => { const y = stopY(s); return y !== null && y > scrollY + 20; });
+    if (tourIdx < 0) { tourState = 'done'; return; }
+    tourNext();
+  }
+  function tourPause() {
+    if (!['hold', 'glide', 'dwell', 'paused'].includes(tourState)) return;
+    stopTimers();
+    tourState = 'paused';
+    resumeTimer = setTimeout(tourResume, RESUME_AFTER);
+  }
+  function tourOff() {
+    if (tourState === 'idle' || tourState === 'done') return;
+    stopTimers();
+    tourState = 'off';
+  }
+  // the guest scrolls by themselves -> they know how; stop for good
+  let touchY = 0;
+  addEventListener('touchstart', (e) => { touchY = e.touches[0].clientY; tourPause(); }, { passive: true });
+  addEventListener('touchmove', (e) => { if (Math.abs(e.touches[0].clientY - touchY) > 12) tourOff(); }, { passive: true });
+  addEventListener('wheel', tourOff, { passive: true });
+  addEventListener('pointerdown', (e) => { if (e.pointerType !== 'touch') tourPause(); });
+  addEventListener('keydown', (e) => {
+    if (['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' '].includes(e.key)) tourOff(); else tourPause();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      if (['hold', 'glide', 'dwell', 'paused'].includes(tourState)) { stopTimers(); tourState = 'hidden'; }
+    } else if (tourState === 'hidden') {
+      resumeTimer = setTimeout(tourResume, 3000);
+    }
+  });
 
   /* =========================================================
      CLOSING STARS
