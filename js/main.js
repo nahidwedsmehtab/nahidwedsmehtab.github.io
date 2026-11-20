@@ -581,12 +581,12 @@
      Stops for good once the guest scrolls themselves; a plain tap pauses it
      and it carries on after RESUME_AFTER of no touching.
      ========================================================= */
-  const HERO_HOLD = 6000;      // names & date
+  const HERO_HOLD = 9000;      // names & date
   const RESUME_AFTER = 12000;  // after a tap
   const TOUR = [               // [section id, seconds at each stop] (two numbers = two stops)
     ['verse', [8]],
     ['invite', [10, 9]],       // bride's side, then groom's side
-    ['countdown', [6]],
+    ['countdown', [6.5]],
     ['haldi', [8, 6]],         // only on the Haldi link
     ['nikah', [8, 8]],
     ['venue', [5, 5]],
