@@ -19,12 +19,6 @@
      `only: 'baraat'` = shown only on the Baraat link (…/mehtab/?baraat)        */
   const EVENTS = [
     {
-      key: 'haldi', name: 'Haldi', icon: 'i-haldi',
-      date: '2026-12-31', time: '', hours: 4,
-      tag: 'A golden splash of turmeric, laughter & love',
-      venue: '', address: '', maps: '',
-    },
-    {
       key: 'baraat', name: 'Baraat', icon: 'i-baraat', only: 'baraat',
       date: '2027-01-02', time: '19:00', hours: 4,
       tag: 'The groom sets out to bring home his bride',
@@ -184,7 +178,7 @@
   function startPetals() {
     if (reduceMotion) return;
     const box = $('#petals');
-    const colors = ['#9a2a40', '#b8485c', '#e7b3ad', '#d9b56c', '#7b1a2c'];
+    const colors = ['#2d44a0', '#5a74cc', '#c9d3f0', '#d9b56c', '#1f2f7a'];
     const n = innerWidth < 600 ? 12 : 18;
     for (let i = 0; i < n; i++) {
       const p = document.createElement('i');
