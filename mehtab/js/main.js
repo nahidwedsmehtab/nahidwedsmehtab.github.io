@@ -27,9 +27,11 @@
     },
     {
       key: 'reception', name: 'Reception', icon: 'i-reception',
-      date: '2027-01-06', time: '', hours: 4,
-      tag: 'An evening of dinner, duas & celebration',
-      venue: '', address: '', maps: '',
+      date: '2027-01-06', time: '13:00', hours: 4,
+      tag: 'An afternoon of food, duas & celebration',
+      venue: "Mukhtar Khan's House",
+      address: 'Gram Natauli, Post Nandauli, Thana Baldirai, District Sultanpur, Uttar Pradesh',
+      maps: '',
     },
   ];
 

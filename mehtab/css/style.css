@@ -219,11 +219,11 @@ main {
 }
 .date { position: relative; flex: 1 1 0; max-width: 140px; padding: 0 6px; }
 .date + .date { border-left: 1px solid rgba(185, 141, 69, .4); }
-.date svg { width: 30px; height: 30px; color: var(--gold); display: block; margin: 0 auto 4px; }
-.date__d { position: relative; display: inline-block; font-weight: 700; font-size: 32px; line-height: 1; color: var(--royal); }
-.date__m { display: block; margin-top: 4px; font-family: var(--ff-caps); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-2); }
-.date__n { display: block; margin-top: 4px; font-family: var(--ff-caps); font-weight: 600; font-size: 11.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--royal); }
-.date__d { background: linear-gradient(120deg, #1f2f7a 30%, #4a64c4 50%, #1f2f7a 70%); background-size: 250% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: shimmer 4s ease-in-out infinite; }
+.date svg { width: 34px; height: 34px; color: var(--gold); display: block; margin: 0 auto 4px; }
+.date__d { position: relative; display: inline-block; font-weight: 700; font-size: 54px; line-height: 1; color: var(--royal); }
+.date__m { display: block; margin-top: 6px; font-family: var(--ff-caps); font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-2); }
+.date__n { display: block; margin-top: 6px; font-family: var(--ff-caps); font-weight: 600; font-size: 14px; letter-spacing: .16em; text-transform: uppercase; color: var(--royal); }
+.date__d { background: linear-gradient(120deg, #1f2f7a 38%, #3a52b0 50%, #1f2f7a 62%); background-size: 250% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: shimmer 4s ease-in-out infinite; }
 @keyframes shimmer { 0%, 100% { background-position: 100% 0; } 50% { background-position: 0 0; } }
 .sparkle {
   position: absolute; width: 11px; height: 11px; pointer-events: none;
