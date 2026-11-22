@@ -142,6 +142,7 @@
       window.scrollTo(0, 0);
       startReveal();
       startPetals();
+      writeNames();
       startTour();
     }, t2);
     setTimeout(() => opener.remove(), t2 + 1100);
@@ -155,6 +156,123 @@
   openBtn.addEventListener('click', openScroll);
   opener.addEventListener('click', (e) => { if (!openBtn.contains(e.target)) openScroll(); });
   document.addEventListener('keydown', (e) => { if (!opened && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openScroll(); } });
+
+  /* =========================================================
+     NAMES WRITE THEMSELVES — the traced lettering is drawn stroke by
+     stroke (left to right), then fills in, then a soft gold shine passes
+     ========================================================= */
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  function writeName(svg, delay) {
+    const fillPath = svg.querySelector(':scope > path');
+    if (!fillPath) return;
+    if (reduceMotion) { svg.classList.add('is-filled'); return; }
+    const vb = svg.viewBox.baseVal;
+    const d = fillPath.getAttribute('d');
+    // ink outlines, one per shape, drawn in order of their position
+    const g = document.createElementNS(SVGNS, 'g');
+    g.setAttribute('class', 'nm__ink');
+    const parts = (d.match(/M[^M]+/g) || []).map((sd) => {
+      const p = document.createElementNS(SVGNS, 'path');
+      p.setAttribute('d', sd);
+      g.appendChild(p);
+      return p;
+    });
+    svg.appendChild(g);
+    const SPAN = 1530, DRAW = 855;   // 10% quicker than first version
+    parts.forEach((p) => {
+      const L = p.getTotalLength();
+      const k = (p.getBBox().x - vb.x) / vb.width;
+      p.style.strokeDasharray = `${L} ${L}`;
+      p.style.strokeDashoffset = L;
+      if (p.animate) {
+        p.animate([{ strokeDashoffset: L }, { strokeDashoffset: 0 }],
+          { duration: DRAW, delay: Math.round(delay + k * SPAN), easing: 'cubic-bezier(.45,.05,.35,1)', fill: 'forwards' });
+      } else p.style.strokeDashoffset = 0;
+    });
+    // gold shine clipped to the letters
+    const id = 'clip-' + Math.random().toString(36).slice(2, 8);
+    const cp = document.createElementNS(SVGNS, 'clipPath');
+    cp.id = id;
+    const cpp = document.createElementNS(SVGNS, 'path');
+    cpp.setAttribute('d', d);
+    cp.appendChild(cpp);
+    const sg = document.createElementNS(SVGNS, 'g');
+    sg.setAttribute('clip-path', `url(#${id})`);
+    const band = vb.width * .28;
+    const rect = document.createElementNS(SVGNS, 'rect');
+    rect.setAttribute('class', 'nm__shine');
+    rect.setAttribute('x', vb.x); rect.setAttribute('y', vb.y);
+    rect.setAttribute('width', band); rect.setAttribute('height', vb.height);
+    rect.setAttribute('fill', 'url(#g-shine)');
+    rect.style.transform = `translateX(${-band}px)`;
+    sg.appendChild(rect);
+    svg.append(cp, sg);
+    const filledAt = delay + SPAN + DRAW - 250;
+    setTimeout(() => svg.classList.add('is-filled'), filledAt);
+    if (rect.animate) {
+      rect.animate([
+        { transform: `translateX(${-band}px)`, offset: 0 },
+        { transform: `translateX(${vb.width + band}px)`, offset: .2 },
+        { transform: `translateX(${vb.width + band}px)`, offset: 1 },
+      ], { duration: 8000, delay: filledAt + 500, iterations: Infinity, easing: 'ease-in-out' });
+    }
+  }
+  function writeNames() {
+    const m = $('.nm__svg--m'), n = $('.nm__svg--n');
+    if (m) writeName(m, 630);
+    if (n) writeName(n, 2070);
+  }
+
+  /* =========================================================
+     FINALE — when "Khan Family" comes into view: the name writes itself,
+     a single shower of gold & blue petals, and the bottom rod rolls in
+     ========================================================= */
+  const khan = $('#khanFamily');
+  const endRod = $('.page-rod--end');
+  let finaleDone = false;
+  function finale() {
+    if (finaleDone) return;
+    finaleDone = true;
+    khan.classList.add('is-written');
+    if (!reduceMotion) {
+      // a little pen-light travelling with the writing edge
+      const pen = document.createElement('i');
+      pen.className = 'pen';
+      khan.parentNode.appendChild(pen);
+      const W = khan.offsetWidth, x0 = khan.offsetLeft, y = khan.offsetTop + khan.offsetHeight * .58;
+      pen.style.top = y + 'px';
+      pen.animate([
+        { left: `${x0 - W * .15}px`, opacity: 0 },
+        { left: `${x0 + W * .02}px`, opacity: 1, offset: .13 },
+        { left: `${x0 + W * .98}px`, opacity: 1, offset: .87 },
+        { left: `${x0 + W * 1.15}px`, opacity: 0 },
+      ], { duration: 2600, easing: 'cubic-bezier(.45,.1,.4,1)', fill: 'forwards' }).onfinish = () => pen.remove();
+      showerOnce();
+    }
+    setTimeout(() => endRod && endRod.classList.add('is-rolled'), reduceMotion ? 0 : 900);
+  }
+  function showerOnce() {
+    const box = $('#petals');
+    const colors = ['#d9b56c', '#e9cf93', '#1f2f7a', '#3a52b0', '#c9d3f0'];
+    const n = innerWidth < 600 ? 34 : 46;
+    for (let i = 0; i < n; i++) {
+      const p = document.createElement('i');
+      p.className = 'petal petal--once';
+      const dur = 6 + Math.random() * 4;
+      p.style.cssText = `left:${Math.random() * 100}%;--s:${8 + Math.random() * 9}px;--c:${colors[i % colors.length]};` +
+        `--dur:${dur}s;--delay:${Math.random() * 1.8}s;--sway:${(Math.random() - .5) * 140}px`;
+      box.appendChild(p);
+      setTimeout(() => p.remove(), (dur + 2) * 1000);
+    }
+  }
+  if (khan) {
+    if ('IntersectionObserver' in window) {
+      const fio = new IntersectionObserver((en) => {
+        if (en.some((e) => e.isIntersecting) && opened) { finale(); fio.disconnect(); }
+      }, { threshold: .7 });
+      fio.observe(khan);
+    } else { khan.classList.add('is-written'); if (endRod) endRod.classList.add('is-rolled'); }
+  }
 
   /* =========================================================
      VERSE words + SCROLL REVEAL
