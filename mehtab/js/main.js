@@ -6,7 +6,7 @@
 
   /* ---------- Settings ---------- */
   const CONFIG = {
-    music: '../assets/audio/song.mp3',          // same song as the bride's side for now
+    music: 'assets/audio/song.mp3',             // groom's side song: Inn Lamhon Ke Daaman Mein
     gateSound: true,
     gateSoundFile: '../assets/audio/gate-chimes.mp3',
   };

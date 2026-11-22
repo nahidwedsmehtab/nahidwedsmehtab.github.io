@@ -13,3 +13,6 @@
 
 # Reference images (not part of the website)
 /PHOTO-*.jpg
+
+# Original song downloads (processed copies live in assets/audio)
+/*Kbps.mp3
