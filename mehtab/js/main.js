@@ -31,7 +31,7 @@
       tag: 'An afternoon of food, duas & celebration',
       venue: "Mukhtar Khan's House",
       address: 'Gram Natauli, Post Nandauli, Thana Baldirai, District Sultanpur, Uttar Pradesh',
-      maps: '',
+      maps: 'https://maps.app.goo.gl/EEscTqpPdmVrjuP67',
     },
   ];
 
@@ -102,7 +102,7 @@
     card.id = 'ev-' + ev.key;
     card.dataset.stop = '8';
     card.dataset.reveal = 'up';
-    const time = ev.time ? `<span class="val">${fmtTime(ev.time)}</span>` : TBA;
+    const time = ev.time ? `<span class="val val--time">${fmtTime(ev.time)}</span>` : TBA;
     const venue = ev.venue ? `<span class="val">${esc(ev.venue)}${ev.address ? '<br>' + esc(ev.address) : ''}</span>` : TBA;
     card.innerHTML = `
       <div class="ev__medal"><svg aria-hidden="true"><use href="#${ev.icon}"/></svg></div>
